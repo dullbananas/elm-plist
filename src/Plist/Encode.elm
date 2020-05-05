@@ -9,6 +9,8 @@ module Plist.Encode exposing
     , date
     , integer
     , real
+
+    , encodeXml
     )
 
 import Plist.Internal exposing (Value(..))
@@ -18,6 +20,15 @@ import Set exposing (Set)
 import Dict exposing (Dict)
 import Bytes exposing (Bytes)
 import Time
+import XmlParser exposing
+    ( Xml
+    , Node(..)
+    , Attribute
+    , ProcessingInstruction
+    , DocType
+    )
+import Base64
+import Iso8601
 
 
 
@@ -72,3 +83,76 @@ integer =
 real : Float -> Value
 real =
     Real
+
+
+
+-- SERIALIZE
+
+
+encodeXml : Value -> Xml
+encodeXml val =
+    { processingInstructions =
+        [ ProcessingInstruction
+            "xml"
+            "version=\"1.0\" encoding=\"UTF-8\""
+        ]
+
+    , docType =
+        Just <| DocType
+            "plist"
+            ( XmlParser.Public
+                "-//Apple//DTD PLIST 1.0//EN"
+                "http://www.apple.com/DTDs/PropertyList-1.0.dtd"
+                Nothing
+            )
+
+    , root =
+        Element
+            "plist"
+            [ Attribute "version" "1.0" ]
+            [ encodeNode val ]
+    }
+
+
+encodeNode : Value -> Node
+encodeNode val =
+    case val of
+        Dict d ->
+            Dict.toList d
+                |> List.map (
+                    \(key, dval) ->
+                        [ Element "key" [] [ Text key ]
+                        , encodeNode dval
+                        ]
+                )
+                |> List.concat
+                |> Element "dict" []
+
+        Array items ->
+            Element "array" [] <| List.map encodeNode items
+
+        String v ->
+            el "string" v
+
+        Bool True ->
+            Element "true" [] []
+
+        Bool False ->
+            Element "false" [] []
+
+        Data v ->
+            el "data" <| Maybe.withDefault "" <| Base64.fromBytes v
+
+        Date v ->
+            el "date" <| Iso8601.fromTime v
+
+        Integer v ->
+            el "integer" <| String.fromInt v
+
+        Real v ->
+            el "real" <| String.fromFloat v
+
+
+el : String -> String -> Node
+el name val =
+    Element name [] [ Text val ]

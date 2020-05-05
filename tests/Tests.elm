@@ -4,6 +4,9 @@ import Expect exposing (Expectation)
 import Test exposing (..)
 
 import Dict
+import XmlParser as X
+import Bytes.Encode
+import Bytes exposing (Bytes)
 
 import Plist.Internal exposing (Value(..))
 import Plist.Encode as E
@@ -26,8 +29,16 @@ suite =
                     ] )
                 , ("Seven", E.integer 7)
                 , ("OneTenth", E.real 0.1)
+                , ("bytes", E.data testBytes)
                 ]
                 |> Expect.equal plist0
+
+        , describe "Encode.encode*"
+            [ test "xml" <| \_ ->
+                plist0
+                    |> E.encodeXml
+                    |> Expect.equal xml0
+            ]
 
         , describe "Decode"
             [ test "string" <| \_ ->
@@ -136,4 +147,69 @@ plist0 =
             ] )
         , ("Seven", Integer 7)
         , ("OneTenth", Real 0.1)
+        , ("bytes", Data <| Bytes.Encode.encode <| Bytes.Encode.string "I love Elm")
         ]
+
+
+xml0 : X.Xml
+xml0 =
+    { processingInstructions =
+        List.singleton
+            { name = "xml"
+            , value = "version=\"1.0\" encoding=\"UTF-8\""
+            }
+
+    , docType =
+        Just
+            { rootElementName = "plist"
+            , definition =
+                X.Public
+                    "-//Apple//DTD PLIST 1.0//EN"
+                    "http://www.apple.com/DTDs/PropertyList-1.0.dtd"
+                    Nothing
+            }
+
+    , root =
+        X.Element "plist" [ X.Attribute "version" "1.0" ]
+            [ dict
+                [ ("OneTenth", el "real" "0.1")
+                , ("Seven", el "integer" "7")
+                , ("bestPersonEver", el "string" "Evan Czaplicki")
+                , ("bytes", el "data" "SSBsb3ZlIEVsbQ==")
+                , ("javascriptIsGood", X.Element "false" [] [])
+                , ("people", X.Element "array" []
+                    [ dict
+                        [ ("firstName", el "string" "Dul")
+                        , ("lastName", el "string" "Bana")
+                        ]
+                    , dict
+                        [ ("firstName", el "string" "Patrick")
+                        , ("lastName", el "string" "Enis")
+                        ]
+                    ]
+                )
+                , ("worstLang", el "string" "JavaScript")
+                ]
+            ]
+    }
+
+
+testBytes : Bytes
+testBytes =
+    "I love Elm"
+        |> Bytes.Encode.string
+        |> Bytes.Encode.encode
+
+
+el : String -> String -> X.Node
+el name content =
+    X.Element name [] [ X.Text content ]
+
+
+dict : List ( String, X.Node ) -> X.Node
+dict =
+    List.map ( \( key, val ) ->
+        [ X.Element "key" [] [ X.Text key ], val ]
+    )
+        >> List.concat
+        >> X.Element "dict" []
