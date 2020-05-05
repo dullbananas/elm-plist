@@ -24,6 +24,8 @@ suite =
                     [ encodeName <| Name "Dul" "Bana"
                     , encodeName <| Name "Patrick" "Enis"
                     ] )
+                , ("Seven", E.integer 7)
+                , ("OneTenth", E.real 0.1)
                 ]
                 |> Expect.equal plist0
 
@@ -132,4 +134,6 @@ plist0 =
             [ Dict <| Dict.fromList [("firstName", String "Dul"), ("lastName", String "Bana")]
             , Dict <| Dict.fromList [("firstName", String "Patrick"), ("lastName", String "Enis")]
             ] )
+        , ("Seven", Integer 7)
+        , ("OneTenth", Real 0.1)
         ]

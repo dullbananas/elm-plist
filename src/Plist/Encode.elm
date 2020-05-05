@@ -5,6 +5,10 @@ module Plist.Encode exposing
     , list
     , string
     , bool
+    , data
+    , date
+    , integer
+    , real
     )
 
 import Plist.Internal exposing (Value(..))
@@ -12,6 +16,8 @@ import Plist.Internal exposing (Value(..))
 import Array exposing (Array)
 import Set exposing (Set)
 import Dict exposing (Dict)
+import Bytes exposing (Bytes)
+import Time
 
 
 
@@ -46,3 +52,23 @@ string =
 bool : Bool -> Value
 bool =
     Bool
+
+
+data : Bytes -> Value
+data =
+    Data
+
+
+date : Time.Posix -> Value
+date =
+    Date
+
+
+integer : Int -> Value
+integer =
+    Integer
+
+
+real : Float -> Value
+real =
+    Real

@@ -5,6 +5,10 @@ module Plist.Decode exposing
     , value
     , string
     , bool
+    , data
+    , date
+    , integer
+    , real
     , list
     , field
     , succeed
@@ -16,6 +20,8 @@ module Plist.Decode exposing
 
 import Result.Extra as ResultE
 import Dict exposing (Dict)
+import Time
+import Bytes exposing (Bytes)
 
 import Plist.Internal exposing (Value(..))
 
@@ -67,6 +73,46 @@ bool =
     Decoder <| \val ->
         case val of
             Bool v ->
+                Ok v
+            _ ->
+                Err <| WrongType val
+
+
+data : Decoder Bytes
+data =
+    Decoder <| \val ->
+        case val of
+            Data v ->
+                Ok v
+            _ ->
+                Err <| WrongType val
+
+
+date : Decoder Time.Posix
+date =
+    Decoder <| \val ->
+        case val of
+            Date v ->
+                Ok v
+            _ ->
+                Err <| WrongType val
+
+
+integer : Decoder Int
+integer =
+    Decoder <| \val ->
+        case val of
+            Integer v ->
+                Ok v
+            _ ->
+                Err <| WrongType val
+
+
+real : Decoder Float
+real =
+    Decoder <| \val ->
+        case val of
+            Real v ->
                 Ok v
             _ ->
                 Err <| WrongType val

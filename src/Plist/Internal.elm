@@ -3,6 +3,8 @@ module Plist.Internal exposing
     )
 
 import Dict exposing (Dict)
+import Bytes exposing (Bytes)
+import Time
 
 
 type Value
@@ -10,3 +12,7 @@ type Value
     | Array ( List Value )
     | String String
     | Bool Bool
+    | Data Bytes
+    | Date Time.Posix
+    | Integer Int
+    | Real Float
