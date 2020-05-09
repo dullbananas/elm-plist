@@ -156,3 +156,15 @@ encodeNode val =
 el : String -> String -> Node
 el name val =
     Element name [] [ Text val ]
+
+
+
+{-binEncodeValue : Int -> BinValue -> B.Encoder
+binEncodeValue refLength val =
+    case val of
+        BinDict keys vals ->
+            B.sequence <|
+                [ marker 0xD0 <| List.length keys ]
+                ++ List.map encodeRef keys
+                ++ List.map encodeRef vals
+-}
