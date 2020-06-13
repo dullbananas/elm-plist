@@ -15,6 +15,7 @@ import Bytes.Encode as E exposing (Encoder)
 import Bitwise
 import Time
 import Dict
+import Cons exposing (Cons(..))
 
 import Plist.Internal as P
 
@@ -32,44 +33,59 @@ type alias Object =
 -}
 
 type Value
-    = Dict ( List (Object, Object) )
-    | Array ( List Object )
+    = Dict ( List (Int, Int) )
+    | Array ( List Int )
     | Primitive P.Value
 
 
-objectFromValue : Int -> P.Value -> Object
-objectFromValue rootRef value =
-    { ref = rootRef
-    , value =
-        case value of
-            P.Dict dict ->
-                Dict <| .entries <|
-                    List.foldl
-                        ( \(key, item) state ->
-                            { nextRef = state.nextRef + P.depth item + 1
-                            , entries = state.entries ++
-                                [(Object state.nextRef <| Primitive <| P.String key
-                                , objectFromValue (state.nextRef + 1) item
-                                )]
-                            }
-                        )
-                        { nextRef = rootRef + 1, entries = [] }
-                        ( Dict.toList dict )
+objectsFromValue : Int -> P.Value -> Cons Object
+objectsFromValue rootRef value =
+    case value of
+        P.Dict dict ->
+            --
+            Dict <| .entries <|
+                List.foldl
+                    ( \(key, item) state ->
+                        { nextRef = state.nextRef + P.depth item + 1
+                        , entries = state.entries ++
+                            [(Object state.nextRef <| Primitive <| P.String key
+                            , objectFromValue (state.nextRef + 1) item
+                            )]
+                        }
+                    )
+                    { nextRef = rootRef + 1, entries = [] }
+                    ( Dict.toList dict )
 
-            P.Array items ->
-                Array <| .objects <|
-                    List.foldl
-                        ( \item state ->
+        P.Array items ->
+            let
+                objects : List ( Cons Object )
+                objects =
+                    .result <| List.foldl
+                        ( \item { result, nextRef } ->
                             { nextRef = state.nextRef + P.depth item
-                            , objects = state.objects ++ [ objectFromValue state.nextRef item ]
+                            , result = state.result ++ [ ob ]
                             }
                         )
-                        { nextRef = rootRef + 1, objects = [] }
-                        items
+                refs : List Int
+                refs =
+                    List.map ( Cons.head >> .ref ) objects
+            in
+                Cons
+                    ( Array refs )
+                    ( objects )
+            --
+            Array <| .objects <|
+                List.foldl
+                    ( \item state ->
+                        { nextRef = state.nextRef + P.depth item
+                        , objects = state.objects ++ [ objectFromValue state.nextRef item ]
+                        }
+                    )
+                    { nextRef = rootRef + 1, objects = [] }
+                    items
 
-            primitive ->
-                Primitive primitive
-    }
+        primitive ->
+            Cons.singleton <| Primitive primitive
 
 
 {-| Encode for a marker, which indicates the type of object and the size. The
